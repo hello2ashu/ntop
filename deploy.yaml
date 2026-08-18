@@ -40,7 +40,7 @@ services:
             - CLICKHOUSE_DB=ntopng
         volumes:
             - /volume1/docker/ntop/clickhouse_data:/var/lib/clickhouse
-            - ./volume1/docker/ntop/clickhouse_logs:/var/log/clickhouse-server
+            - /volume1/docker/ntop/clickhouse_logs:/var/log/clickhouse-server
         networks:
             ntop:
                 ipv4_address: 10.0.1.4
