@@ -1,6 +1,6 @@
 services:
   nprobe_collector:
-    image: ntop/nprobe:stable
+    image: ntop/nprobe:latest
     restart: always
     network_mode: "host"
     volumes:
