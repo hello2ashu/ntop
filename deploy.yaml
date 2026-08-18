@@ -1,20 +1,21 @@
-services: 
- ntopng:
-    hostname: ntopng
-    image: ntop/ntopng:latest
+version: '3.8'
+
+services:
+  ntopng-redis:
+    image: redis:alpine
+    container_name: ntopng-redis
+    restart: unless-stopped
+    command: redis-server --allow-empty-password yes
+
+  ntopng:
+    image: ntop/ntopng:stable
     container_name: ntopng
-    healthcheck:
-       test: timeout 10s bash -c ':> /dev/tcp/127.0.0.1/3000' || exit 1
-       interval: 10s
-       timeout: 5s
-       retries: 3
-       start_period: 90s
-    mem_limit: 4g
-    cpu_shares: 768
-    network_mode: host
-    command: --community
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - /volume1/docker/ntopng:/var/lib/ntopng:rw
-    restart: on-failure:5
+    restart: unless-stopped
+    depends_on:
+      - ntopng-redis
+    ports:
+      # Format: "HOST_PORT:CONTAINER_PORT"
+      # Change 3000 below if you want to use a different port on your host machine
+      - "7275:7275/tcp"
+      - "2055:2055/udp"  # For collecting NetFlow/sFlow data
+    command: ["ntopng", "-i", "eth0", "-r", "ntopng-redis:6379", "-w", "7275"]
