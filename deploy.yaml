@@ -1,21 +1,31 @@
-version: '3.8'
-
 services:
-  ntopng-redis:
-    image: redis:alpine
-    container_name: ntopng-redis
-    restart: unless-stopped
-    command: redis-server --allow-empty-password yes
+  nprobe_collector:
+    image: ntop/nprobe:stable
+    restart: always
+    network_mode: "host"
+    volumes:
+      - /etc/nprobe.license:/etc/nprobe.license:ro
+    command: ['nprobe', '--zmq', '"tcp://ntopng:5556"', '--interface', 'none', '-n', 'none', '--collector-port', '2055', '-T', '"@NTOPNG@"', '--collector-passthrough']
 
   ntopng:
     image: ntop/ntopng:latest
-    container_name: ntopng
-    restart: unless-stopped
+    restart: always
+    network_mode: "host"
+    volumes:
+      - /etc/ntopng.license:/etc/ntopng.license:ro
+    command: ['--interface', 'tcp://*:5556c', '-F', 'clickhouse', '--disable-login'] # , '--insecure']
     depends_on:
-      - ntopng-redis
-    ports:
-      # Format: "HOST_PORT:CONTAINER_PORT"
-      # Change 3000 below if you want to use a different port on your host machine
-      - "7275:7275/tcp"
-      - "2055:2055/udp"  # For collecting NetFlow/sFlow data
-    command: ["ntopng", "-i", "eth0", "-r", "ntopng-redis:6379", "-w", "7275"]
+      - clickhouse
+      - nprobe_collector
+      
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    network_mode: "host"
+    restart: always
+    volumes:
+      - /volume1/docker/ntop/clickhouse_data:/var/lib/clickhouse
+      - /volume1/docker/ntop/clickhouse_logs:/var/log/clickhouse-server/
+      
+volumes:
+  clickhouse_data:
+  clickhouse_logs:
