@@ -1,49 +1,31 @@
 services:
-    ntopng:
-        container_name: ntopng
-        environment:
-            - PUID=1026
-            - PGID=100
-        ports:
-            - 3001:3001
-        #volumes:
-            # - /etc/ntopng.license:/etc/ntopng.license:ro
-        depends_on:
-            - clickhouse
-            - netflow2ng
-        command: [ '-i', 'tcp://*:5556c', '-F', 'clickhouse', '--disable-login', '1' ]
-        image: ntop/ntopng:latest
-        restart: unless-stopped
-        network_mode: host
+  ntopng:
+    image: ntop/ntopng:stable
+    hostname: ntop
+    container_name: ntop
+    restart: always
+    network_mode: host
+    # Port mapping (disable network_mode: host)
+    #ports:
+    #  - 3001:3001
+    volumes:
+      - /etc/ntopng.license:/etc/ntopng.license:ro
+      - ntopng_redis:/var/lib/redis
+    command: [ '-i', 'tcp://*:5556c', '-F', 'clickhouse', '--disable-login', '1' ]
+    depends_on:
+      - clickhouse
 
-    netflow2ng:
-        container_name: netflow2ng
-        ports:
-            - 2055:2055/udp
-        entrypoint: /netflow2ng # --level=debug
-        image: synfinatic/netflow2ng
-        restart: unless-stopped
-        network_mode: host
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.4
+    hostname: clickhouse
+    container_name: clickhouse
+    restart: always
+    network_mode: host
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
 
-    clickhouse:
-        image: clickhouse/clickhouse-server:23.4
-        hostname: clickhouse
-        container_name: clickhouse
-        restart: unless-stopped
-        environment:
-            - CLICKHOUSE_USER=ntopng
-            - CLICKHOUSE_PASSWORD=ntopng
-            - CLICKHOUSE_DB=ntopng
-        volumes:
-            - /volume1/docker/ntop/clickhouse_data:/var/lib/clickhouse
-            - /volume1/docker/ntop/clickhouse_logs:/var/log/clickhouse-server
-        network_mode: host
-
-    redis:
-        container_name: ntopng-redis
-        volumes:
-            - /volume1/docker/ntop/data:/data
-        image: redis:6.2-alpine
-        command: redis-server --appendonly yes --requirepass redispassword
-        restart: always
-        network_mode: host
+volumes:
+  clickhouse_data:
+  clickhouse_logs:
+  ntopng_redis:
