@@ -1,31 +1,64 @@
 services:
-  nprobe_collector:
-    image: ntop/nprobe:latest
-    restart: always
-    network_mode: "host"
-    volumes:
-      - /etc/nprobe.license:/etc/nprobe.license:ro
-    command: ['nprobe', '--zmq', '"tcp://ntopng:5556"', '--interface', 'none', '-n', 'none', '--collector-port', '2055', '-T', '"@NTOPNG@"', '--collector-passthrough']
+    ntopng:
+        container_name: ntopng
+        environment:
+            - PUID=1000
+            - PGID=1000
+        ports:
+            - 3000:3000
+        #volumes:
+            # - /etc/ntopng.license:/etc/ntopng.license:ro
+        depends_on:
+            - clickhouse
+            - netflow2ng
+        command: [ '-i', 'tcp://10.0.1.3:5556', '-F', 'clickhouse;10.0.1.4;ntopng;ntopng;ntopng', '--redis', '10.0.1.5:6379:redispassword', '--community', "-m", "<your_local_subnet>" ]
+        image: ntop/ntopng:latest
+        restart: unless-stopped
+        networks:
+            ntop:
+                ipv4_address: 10.0.1.2
 
-  ntopng:
-    image: ntop/ntopng:latest
-    restart: always
-    network_mode: "host"
-    volumes:
-      - /etc/ntopng.license:/etc/ntopng.license:ro
-    command: ['--interface', 'tcp://*:5556c', '-F', 'clickhouse', '--disable-login'] # , '--insecure']
-    depends_on:
-      - clickhouse
-      - nprobe_collector
-      
-  clickhouse:
-    image: clickhouse/clickhouse-server:latest
-    network_mode: "host"
-    restart: always
-    volumes:
-      - /volume1/docker/ntop/clickhouse_data:/var/lib/clickhouse
-      - /volume1/docker/ntop/clickhouse_logs:/var/log/clickhouse-server/
-      
-volumes:
-  clickhouse_data:
-  clickhouse_logs:
+    netflow2ng:
+        container_name: netflow2ng
+        ports:
+            - 2055:2055/udp
+        entrypoint: /netflow2ng --tlv # --level=debug
+        image: synfinatic/netflow2ng
+        restart: unless-stopped
+        networks:
+            ntop:
+                ipv4_address: 10.0.1.3
+
+    clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        hostname: clickhouse
+        container_name: clickhouse
+        restart: unless-stopped
+        environment:
+            - CLICKHOUSE_USER=ntopng
+            - CLICKHOUSE_PASSWORD=ntopng
+            - CLICKHOUSE_DB=ntopng
+        volumes:
+            - ./db/data:/var/lib/clickhouse
+            - ./db/logs:/var/log/clickhouse-server
+        networks:
+            ntop:
+                ipv4_address: 10.0.1.4
+
+    redis:
+        container_name: ntopng-redis
+        volumes:
+            - ./redis:/data
+        image: redis:6.2-alpine
+        command: redis-server --appendonly yes --requirepass redispassword
+        restart: always
+        networks:
+            ntop:
+                ipv4_address: 10.0.1.5
+
+networks:
+    ntop:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.0.1.0/28
