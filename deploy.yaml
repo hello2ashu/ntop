@@ -1,31 +1,13 @@
+version: "3.8"
 services:
-  ntopng:
+  ntopg:
     image: ntop/ntopng:latest
-    hostname: ntop
-    container_name: ntop
-    restart: always
-    network_mode: host
-    # Port mapping (disable network_mode: host)
-    #ports:
-    #  - 3001:3001
     volumes:
-      - /etc/ntopng.license:/etc/ntopng.license:ro
-      - ntopng_redis:/var/lib/redis
-    command: [ '-i', 'tcp://*:5556c', '-F', 'clickhouse', '--disable-login', '1' ]
-    depends_on:
-      - clickhouse
-
-  clickhouse:
-    image: clickhouse/clickhouse-server:23.4
-    hostname: clickhouse
-    container_name: clickhouse
-    restart: always
-    network_mode: host
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-
-volumes:
-  clickhouse_data:
-  clickhouse_logs:
-  ntopng_redis:
+      - /volume1/docker/ntop/data:/etc/ntopng.license:ro
+    ports:
+      - "3001:3000"
+    environment:
+      - TZ="America/Los_Angeles"
+    network_mode: "host"
+    command: ["-i", "eth0","-i", "eth3","-i", "tun0","-i", "lo", "-i", "bond0"]
+    restart: unless-stopped
