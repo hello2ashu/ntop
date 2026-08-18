@@ -9,5 +9,5 @@ services:
     environment:
       - TZ="America/Los_Angeles"
     network_mode: "host"
-    command: ["-i", "eth0","-i", "eth3","-i", "tun0","-i", "lo", "-i", "bond0", "-w 3010"]
+    command: ["-i", "eth0","-i", "eth1","-i", "tun0","-i", "lo", "-i", "bond0", "-w 3010"]
     restart: unless-stopped
