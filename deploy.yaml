@@ -22,7 +22,7 @@ services:
         container_name: netflow2ng
         ports:
             - 2055:2055/udp
-        entrypoint: /netflow2ng --tlv # --level=debug
+        entrypoint: /netflow2ng # --level=debug
         image: synfinatic/netflow2ng
         restart: unless-stopped
         networks:
