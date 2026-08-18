@@ -5,7 +5,7 @@ services:
             - PUID=1026
             - PGID=100
         ports:
-            - 3000:3000
+            - 3001:3001
         #volumes:
             # - /etc/ntopng.license:/etc/ntopng.license:ro
         depends_on:
