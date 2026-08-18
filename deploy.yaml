@@ -39,8 +39,8 @@ services:
             - CLICKHOUSE_PASSWORD=ntopng
             - CLICKHOUSE_DB=ntopng
         volumes:
-            - ./db/data:/var/lib/clickhouse
-            - ./db/logs:/var/log/clickhouse-server
+            - /volume1/docker/ntop/clickhouse_data:/var/lib/clickhouse
+            - ./volume1/docker/ntop/clickhouse_logs:/var/log/clickhouse-server
         networks:
             ntop:
                 ipv4_address: 10.0.1.4
@@ -48,7 +48,7 @@ services:
     redis:
         container_name: ntopng-redis
         volumes:
-            - ./redis:/data
+            - /volume1/docker/ntop/data:/data
         image: redis:6.2-alpine
         command: redis-server --appendonly yes --requirepass redispassword
         restart: always
