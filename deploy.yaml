@@ -5,7 +5,7 @@ services:
     volumes:
       - /volume1/docker/ntop/data:/etc/ntopng.license:ro
     ports:
-      - "3001:3001"
+      - "3010:3000"
     environment:
       - TZ="America/Los_Angeles"
     network_mode: "host"
