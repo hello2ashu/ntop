@@ -3,11 +3,43 @@ services:
   ntopg:
     image: ntop/ntopng:latest
     volumes:
-      - /volume1/docker/ntop/data:/etc/ntopng.license:ro
+      # Persists ntopng's RRD stats, host DB, and alert history across
+      # container recreates. Without this, every redeploy/update wipes
+      # all history - the previous config had no persistent volume at all.
+      - /volume1/docker/ntop/data:/var/lib/ntopng
+      # If you have a paid Enterprise license file, mount the FILE itself
+      # here (not a directory - the old config mounted a directory onto a
+      # file path, which doesn't work). Comment this out entirely if
+      # you're running Community edition, which needs no license file.
+      # - /volume1/docker/ntop/ntopng.license:/etc/ntopng/ntopng.license:ro
     ports:
       - "3010:3010"
     environment:
-      - TZ="America/Los_Angeles"
+      # No embedded quotes - the old value "America/Los_Angeles" (with
+      # literal quote characters) isn't a valid TZ string, so it was
+      # silently falling back to UTC.
+      - TZ=America/Los_Angeles
     network_mode: "host"
-    command: ["-i", "eth0","-i", "eth1","-i", "tun0","-i", "lo", "-i", "bond0", "-w 3010"]
+    cap_add:
+      # Required to open raw capture sockets. Without this the container
+      # starts and looks healthy but silently captures nothing - this was
+      # very likely the actual cause of "misconfigured/no real traffic",
+      # independent of which interface name was used.
+      - NET_ADMIN
+      - NET_RAW
+    command:
+      - "-i"
+      - "ovs_eth0"   # real bridge interface for eth0 - Synology's OVS layer
+                      # means eth0/eth1 directly see little to no traffic
+      - "-i"
+      - "ovs_eth1"   # real bridge interface for eth1
+      - "-i"
+      - "lo"
+      # tun0 and bond0 removed - neither exists on this NAS (confirmed via
+      # `ip -br link show`), so those -i flags were pointless/possibly
+      # causing startup warnings.
+      - "-w"
+      - "3010"       # was a single malformed "-w 3010" argv string before -
+                      # split into two array items, which is what
+                      # docker-compose's array form actually requires
     restart: unless-stopped
