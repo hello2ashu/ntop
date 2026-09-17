@@ -42,4 +42,11 @@ services:
       - "3010"       # was a single malformed "-w 3010" argv string before -
                       # split into two array items, which is what
                       # docker-compose's array form actually requires
+    mem_limit: 512m   # ntopng builds in-memory flow tables; raise if you see OOM kills
+    cpus: "1.5"       # continuous packet capture on 3 interfaces can spike a core
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     restart: unless-stopped
